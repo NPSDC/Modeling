@@ -358,7 +358,7 @@ def main():
 	#	print y[i]
 	plt.title("Synch")
 	
-	lines = plt.plot(time, y[:,4]	)	
+	lines = plt.plot(time, y[:,5]	)	
 	
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')

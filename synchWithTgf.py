@@ -44,7 +44,7 @@ def main():
 	##this calculates the value of each species during the time course
 	while (step < t_stop + 1):
 		if( step == 1):
-			temp = rules( y )
+			temp = rules( y )	
 		else:
 			temp = rules( y[step-1])
 		y = np.vstack((y, temp))
@@ -52,14 +52,13 @@ def main():
 	print y
 	###Plot graph
 	plt.title("Synch")
-	lines = plt.plot(np.arange(t_stop + 1), y[:,5], np.arange(t_stop + 1), y[:,6])	
+	lines = plt.plot(np.arange(t_stop + 1), y[:,5], np.arange(t_stop + 1), y[:,4])	
 	plt.setp(lines[0],antialiased = False,color ='#000000',linewidth = 2, marker = "o", markeredgecolor = 'green', label = "erk")
 	plt.setp(lines[1],antialiased = False,color ='red',linewidth = 2,linestyle = '--', marker = 'D', markeredgecolor = 'blue', markerfacecolor = 'none', label = "akt")
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')
 	plt.ylabel('Species')
 	plt.axis([0,11,-0.05,1.2])
-	plt.legend
 	plt.grid(True)
 	plt.show()
 

@@ -218,56 +218,63 @@ def compute_akt(pi3k_value, time_value, initial_values, mfs):
 def check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
 	y = np.copy(initial_cond)
 	
-	if 0 in not_updated or 1 in not_updated:
+	if 0 in not_updated and 1 in not_updated:
 		
 		y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][ time_indexes[0] ], (initial_values[0], initial_values[1], initial_values[2],\
 		 initial_values[7]), (mfs[0], mfs[1], mfs[2], mfs[7]))
 		time_indexes[0] = time_indexes[0] + 1
-		
+
 	else:
 		time_indexes[0] = 1
+
+
+	
 
 	return (y, time_indexes)
 
 def check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
 
-	if 2 in not_updated and 6 in not_updated:
-		time_indexes[1] = time_indexes[1] + 1	
-	elif 2 in not_updated and initial_cond[2] > 0.8:
+	if 2 in not_updated or 6 in not_updated:
 		time_indexes[1] = time_indexes[1] + 1
-	elif 6 in not_updated and initial_cond[6] > 0.8:
-		time_indexes[1] = time_indexes[1] + 1
+		
 	else:
 		time_indexes[1] = 2
 
 	y[3] = compute_raf(initial_cond[2], initial_cond[6], initial_values[7][ time_indexes[1] - 1], \
-	 (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
+		 (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
+	
 
+	
 	return (y, time_indexes)
 
 def check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
 
-	if 2 in not_updated and 5 in not_updated:		
+	if 2 in not_updated and 5 in not_updated:
 		time_indexes[2] = time_indexes[2] + 1
-		#if time_indexes[0] < 300:
-		#	print time_indexes[0]
+
 	else:
+
 		time_indexes[2] =  2
 
 	y[4] = compute_pi3k(initial_cond[2], initial_cond[5], initial_values[7][ time_indexes[2] - 1], \
 		 (initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
-			
+		
+
+	
+
+	
 	return (y, time_indexes)
 
 def check_erk(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
 
-	if 3 in not_updated:		
+	if 3 in not_updated:
+		
 		time_indexes[3] = time_indexes[3] + 1
 	else:
 		time_indexes[3] = 2
 
 
-	y[5] = compute_erk(initial_cond[3], initial_values[7][ time_indexes[3] - 1], \
+	y[5] = compute_erk(initial_cond[3], initial_values[7][ time_indexes[3]-1], \
 		 (initial_values[3], initial_values[5], initial_values[7]), (mfs[3], mfs[5], mfs[7]))	
 
 	
@@ -281,7 +288,7 @@ def check_akt(y, not_updated, prev_cond, initial_cond, time_indexes, initial_val
 		time_indexes[4] = time_indexes[4] + 1
 
 	else:
-		time_indexes[4] = 2
+		time_indexes[4] = 1
 
 
 	
@@ -289,30 +296,19 @@ def check_akt(y, not_updated, prev_cond, initial_cond, time_indexes, initial_val
 	
 	return (y, time_indexes)
 
-
 def rules(prev_cond, initial_cond, time_indexes, (initial_values, mfs)):	
 	not_updated = []
 	for i in xrange(len(prev_cond)):
-		if str(prev_cond[i]) == str(initial_cond[i]):
-			not_updated.append(i)	
-		'''figure out the break condition'''	
-		if(time_indexes[0] == 158):  
-		#	print  i
-		#	print prev_cond[5] , initial_cond[5]
-		#	break
-			pass
-	#if (time_indexes[0] >= 140 and time_indexes[0] < 145):
-	#		print not_updated,prev_cond,initial_cond
+		if prev_cond[i] == initial_cond[i]:
+			not_updated.append(i)		
+
 	y, time_indexes = check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
-	#if time_indexes[0] == 142:
-		#print time_indexes
 	y, time_indexes = check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	y, time_indexes = check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	y, time_indexes = check_erk(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	y, time_indexes = check_akt(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	#y[5] = initial_cond[3]
 	#y[6] = initial_cond[4]
-	y = np.around(y, 8)
 	return (y,time_indexes)
 
 def main():
@@ -337,20 +333,17 @@ def main():
 	time = np.linspace(0, 10, 1000)
 	vals = (egf, hrg, egfr, raf, pi3k, erk, akt, time)
 	mfs = eval_membership_functions(vals)
-
-	for i in vals:
-		np.around(i, 8)
-	for i in mfs:
-		np.around(i, 8)
+	
 	#print rules(y[0], 0, (vals,mfs))
 	times = [ 1, 1, 1, 1, 1]
 	for i in xrange(1, time.size):
 			temp, times = rules(y[i-2], y[i - 1], times , (vals, mfs))
 			#print times	
 			y = np.vstack((y, temp))
-	
-			if i > 90 and i < 200:
-				print 'times',times,'\ny is',y[i]
+	#for i in xrange(290,400):
+	#	print y[i,6]
+		#	if i > 290 and i < 350:
+		#		print times
 			#print time[i ], y[i]
 	#for i in xrange(200,400):
 	#	print y[i]
@@ -358,7 +351,7 @@ def main():
 	#	print y[i]
 	plt.title("Synch")
 	
-	lines = plt.plot(time, y[:,4]	)	
+	lines = plt.plot(time, y[:,2]	)	
 	
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')

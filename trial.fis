@@ -2,9 +2,9 @@
 Name='trial'
 Type='mamdani'
 Version=2.0
-NumInputs=2
+NumInputs=3
 NumOutputs=1
-NumRules=2
+NumRules=1
 AndMethod='min'
 OrMethod='max'
 ImpMethod='min'
@@ -15,8 +15,8 @@ DefuzzMethod='centroid'
 Name='egf'
 Range=[0 1]
 NumMFs=2
-MF1='high':'gaussmf',[0.3 1]
-MF2='low':'gaussmf',[0.22 0]
+MF1='high':'gaussmf',[0.27 1]
+MF2='low':'gaussmf',[0.27 0]
 
 [Input2]
 Name='hrg'
@@ -24,6 +24,13 @@ Range=[0 1]
 NumMFs=2
 MF1='low':'gaussmf',[0.27 0]
 MF2='high':'smf',[0.05 0.95]
+
+[Input3]
+Name='time'
+Range=[0 10]
+NumMFs=2
+MF1='low':'zmf',[0 1]
+MF2='mf2':'smf',[0 1]
 
 [Output1]
 Name='egfr'
@@ -33,5 +40,4 @@ MF1='low':'gauss2mf',[0.28 0 0.2 0]
 MF2='high':'gaussmf',[0.28 1]
 
 [Rules]
-1 2, 2 (1) : 2
-2 1, 1 (1) : 1
+1 2 1, 2 (1) : 2

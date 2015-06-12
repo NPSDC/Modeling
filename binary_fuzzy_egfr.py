@@ -71,7 +71,7 @@ def compute_egfr(egf_value, hrg_value, time_value, initial_values, mfs ):
 	if( a2_2.size == 0):
 		a2_2 = mfs[1][0][ find_closest(initial_values[1], hrg_value)]
 	if( a2_3.size == 0):
-		a2_3 = mfs[1][0][ find_closest(initial_values[3], hrg_value)]
+		a2_3 = mfs[3][0][ find_closest(initial_values[3], hrg_value)]
 
 	a2 = min(a2_1, a2_2)
 	a2 = max(a2, a2_3)
@@ -201,7 +201,7 @@ def compute_akt(pi3k_value, time_value, initial_values, mfs):
 	a1 = min(a1_1, a1_2)
 	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[1][1])
 
-	a2_1 = mfs[0][0][initial_values[0] == raf_value]
+	a2_1 = mfs[0][0][initial_values[0] == pi3k_value]
 	a2_2 = mfs[2][0][initial_values[2] == time_value]
 
 	if( a2_1.size == 0):
@@ -217,50 +217,90 @@ def compute_akt(pi3k_value, time_value, initial_values, mfs):
 
 def check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
 	y = np.copy(initial_cond)
+	
 	if 0 in not_updated and 1 in not_updated:
-		pass
+		
+		y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][ time_indexes[0] ], (initial_values[0], initial_values[1], initial_values[2],\
+		 initial_values[7]), (mfs[0], mfs[1], mfs[2], mfs[7]))
+		time_indexes[0] = time_indexes[0] + 1
 
 	else:
 		time_indexes[0] = 1
 
-	y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][ time_indexes[0] ], (initial_values[0], initial_values[1], initial_values[2],\
-		 initial_values[7]), (mfs[0], mfs[1], mfs[2], mfs[7]))
 
-	time_indexes[0] = time_indexes[0] + 1
+	
 
 	return (y, time_indexes)
 
 def check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
 
-	if 2 in not_updated and 6 in not_updated:
+	if 2 in not_updated or 6 in not_updated:
+		
+		y[3] = compute_raf(initial_cond[2], initial_cond[6], initial_values[7][ time_indexes[1]], \
+		 (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
+		time_indexes[1] = time_indexes[1] + 1	
+	#elif 2 in not_updated and initial_cond[2] > 0.5 :
 		pass
 
-	elif 2 in not_updated and initial_cond[2] > 0.5 :
-		pass
-
-	elif 6 in not_updated and initial_cond[6] > 0.5 :		
+	#elif 6 in not_updated and initial_cond[6] > 0.5 :		
 		pass
 
 	else:
 		time_indexes[1] = 1
 
-	y[3] = compute_raf(initial_cond[2], initial_cond[6], initial_values[7][ time_indexes[1]], \
-		 (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
-	time_indexes[1] = time_indexes[1] + 1
+		#y[3] = compute_raf(initial_cond[2], initial_cond[6], initial_values[7][ time_indexes[1]], \
+		 #(initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
+
+	
 	return (y, time_indexes)
 
 def check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
 
 	if 2 in not_updated and 5 in not_updated:
-		pass
+		y[4] = compute_pi3k(initial_cond[2], initial_cond[5], initial_values[7][ time_indexes[2]], \
+		 (initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
+		time_indexes[2] = time_indexes[2] + 1
 
 	else:
+
 		time_indexes[2] =  1
+		#y[4] = compute_pi3k(initial_cond[2], initial_cond[5], initial_values[7][ time_indexes[2]], \
+		 #(initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
 
-	y[4] = compute_pi3k(initial_cond[2], initial_cond[5], initial_values[7][ time_indexes[2]], \
-		 (initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
+	
 
-	time_indexes[2] = time_indexes[2] + 1
+	
+	return (y, time_indexes)
+
+def check_erk(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
+
+	if 3 in not_updated:
+		y[5] = compute_erk(initial_cond[3], initial_values[7][ time_indexes[3]], \
+		 (initial_values[3], initial_values[5], initial_values[7]), (mfs[3], mfs[5], mfs[7]))	
+		time_indexes[3] = time_indexes[3] + 1
+	else:
+		time_indexes[3] = 1
+
+
+	
+
+	
+	return (y, time_indexes)
+
+def check_akt(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
+
+	if 4 in not_updated:
+		y[6] = compute_akt(initial_cond[4], initial_values[7][ time_indexes[4]], \
+		 (initial_values[4], initial_values[6], initial_values[7]), (mfs[4], mfs[6], mfs[7]))
+		time_indexes[4] = time_indexes[4] + 1
+
+	else:
+		time_indexes[4] = 1
+
+
+	
+
+	
 	return (y, time_indexes)
 
 def rules(prev_cond, initial_cond, time_indexes, (initial_values, mfs)):	
@@ -272,7 +312,8 @@ def rules(prev_cond, initial_cond, time_indexes, (initial_values, mfs)):
 	y, time_indexes = check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	y, time_indexes = check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	y, time_indexes = check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
-	#y[4] = compute_pi3k(initial_cond[2], initial_cond[5], (initial_values[2], initial_values[5], initial_values[4]), (mfs[2], mfs[5], mfs[4]))
+	y, time_indexes = check_erk(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
+	y, time_indexes = check_akt(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	#y[5] = initial_cond[3]
 	#y[6] = initial_cond[4]
 	return (y,time_indexes)
@@ -303,21 +344,26 @@ def main():
 	#print rules(y[0], 0, (vals,mfs))
 	times = [ 1, 1, 1, 1, 1]
 	for i in xrange(1, time.size):
-			temp, times = rules(y[i-2], y[i - 1], times , (vals, mfs))		
+			temp, times = rules(y[i-2], y[i - 1], times , (vals, mfs))
 			#print times	
 			y = np.vstack((y, temp))
+	for i in xrange(290,400):
+		print y[i,6]
+		#	if i > 290 and i < 350:
+		#		print times
 			#print time[i ], y[i]
-	print times
-	print y[i]
+	#for i in xrange(200,400):
+	#	print y[i]
+	#for i in xrange(400):
+	#	print y[i]
 	plt.title("Synch")
-	lines = plt.plot(time, y[:,2], time, y[:,3])	
 	
-	plt.setp(lines[0],antialiased = False,color ='#000000',linewidth = 2, marker = "o", markeredgecolor = 'green', label = "egfr")
-	plt.setp(lines[1],antialiased = False,color ='red',linewidth = 2,linestyle = '--', marker = 'D', markeredgecolor = 'blue', markerfacecolor = 'none', label = "raf")
+	lines = plt.plot(time, y[:,4]	)	
+	
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')
 	plt.ylabel('Species')
-	plt.axis([0,10.1,-0.05,1.2])
+	plt.axis([-0.2,10.1,-0.05,1.2])
 	plt.grid(True)
 	plt.show()
 

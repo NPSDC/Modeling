@@ -29,9 +29,10 @@ def main():
 
 		
 		y = np.vstack((y,new_order))
+		print y[4],times[4]
 		step += 1
 
-	print y
+
 
 	plt.title("ASynch")
 	lines = plt.plot(np.arange(t_stop + 1), y[:,5],np.arange(t_stop + 1), y[:,6])	

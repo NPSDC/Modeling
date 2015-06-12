@@ -82,86 +82,200 @@ def compute_egfr(egf_value, hrg_value, time_value, initial_values, mfs ):
 	a =  fuzz.defuzz(initial_values[2], c_com, 'centroid')
 	return a
 
-def compute_pi3k(egfr_value, erk_value, initial_values, mfs):
-	"""Rules ---
-	if egfr is high and erk is low then pi3k is high
-	if egfr is low or erk is high then pi3k is low"""
-
-	a1_1 = mfs[0][1][initial_values[0] == egfr_value] #egfr_high[egfr == egfr_value]
-	a1_2 = mfs[1][0][ initial_values[1] == erk_value] #erk_low[erk == erk_value]
-
-	if( a1_1.size == 0):
-		a1_1 = mfs[0][1][ find_closest(initial_values[0], egfr_value)]
-	if( a1_2.size == 0):
-		a1_2 = mfs[1][0][ find_closest(initial_values[1], erk_value)]
-
-	a1 = min(a1_1 , a1_2)
-	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[2][1])
-
-	a2_1 = mfs[0][0][ initial_values[0] == egfr_value] #egfr_low[egfr == egfr_value]
-	a2_2 = mfs[1][1][ initial_values[1] == erk_value] #erk_high[erk == erk_value]
-
-	if( a2_1.size == 0):
-		a2_1 = mfs[0][0][ find_closest(initial_values[0], egfr_value)]
-	if( a2_2.size == 0):
-		a2_2 = mfs[1][1][ find_closest(initial_values[1], erk_value)]
-
-	a2 = max(a2_1 , a2_2)
-	c2 = np.fmin( np.linspace(a2, a2, 100), mfs[2][0] )
-
-	c_com = np.fmax(c1, c2)
-	return fuzz.defuzz(initial_values[2], c_com, 'lom')
-
-def compute_raf(egfr_value, akt_value, initial_values, mfs):
+def compute_raf(egfr_value, akt_value, time_value, initial_values, mfs):
 	"""Rules---
-	If egfr is high or akt is high then raf is high
-	if egfr is low and akt is low then raf is low"""	
+	If egfr is high or akt is high and time is high then raf is high
+	if egfr is low and akt is low  or time is low then raf is low"""	
 
 	a1_1 = mfs[0][1][initial_values[0] == egfr_value] #egfr_high[egfr == egfr_value]
 	a1_2 = mfs[1][1][initial_values[1] == akt_value] #akt_high[akt == akt_value]
+	a1_3 = mfs[3][1][initial_values[3] == time_value]
 
 	if( a1_1.size == 0):
 		a1_1 = mfs[0][1][ find_closest(initial_values[0], egfr_value)]
 	if( a1_2.size == 0):
 		a1_2 = mfs[1][1][ find_closest(initial_values[1], akt_value)]
+	if(a1_3.size == 0):
+		a1_3 = mfs[3][1][ find_closest(initial_values[3], time_value)]
 
 	a1 = max( a1_1 , a1_2 )
+	a1 = min(a1_3, a1)
 	#print egfr_value
 	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[2][1])
 
 	a2_1 = mfs[0][0][initial_values[0] == egfr_value] #egfr_low[egfr == egfr_value]
 	a2_2 = mfs[1][0][initial_values[1] == akt_value] #akt_low[akt == akt_value]
+	a2_3 = mfs[3][0][initial_values[3] == time_value]
 
 	if( a2_1.size == 0):
 		a2_1 = mfs[0][0][ find_closest(initial_values[0], egfr_value)]
 	if( a2_2.size == 0):
 		a2_2 = mfs[1][0][ find_closest(initial_values[1], akt_value)]
+	if( a2_3.size == 0):
+		a2_3 = mfs[3][0][ find_closest(initial_values[3], time_value)]
 
 	a2 = min(a2_1 ,a2_2 )
+	a2 = max(a2_3, a2)
 	c2 = np.fmin( np.linspace(a2, a2, 100), mfs[2][0])
 
 	c_com = np.fmax(c1, c2)
-	return fuzz.defuzz(initial_values[2], c_com, 'lom')
+	return fuzz.defuzz(initial_values[2], c_com, 'centroid')
 
-def rules(prev_cond, initial_cond, time_index, (initial_values, mfs)):
+def compute_pi3k(egfr_value, erk_value, time_value, initial_values, mfs):
+	"""Rules ---
+	if egfr is high and erk is low and time is high then pi3k is high
+	if egfr is low or erk is high or time is low then pi3k is low"""
+
+	a1_1 = mfs[0][1][initial_values[0] == egfr_value] #egfr_high[egfr == egfr_value]
+	a1_2 = mfs[1][0][ initial_values[1] == erk_value] #erk_low[erk == erk_value]
+	a1_3 = mfs[3][1][ initial_values[3] == time_value]
+
+	if( a1_1.size == 0):
+		a1_1 = mfs[0][1][ find_closest(initial_values[0], egfr_value)]
+	if( a1_2.size == 0):
+		a1_2 = mfs[1][0][ find_closest(initial_values[1], erk_value)]
+	if( a1_3.size == 0):
+		a1_3 = mfs[3][1][ find_closest(initial_values[3], time_value)]
+
+	a1 = min(a1_1 , a1_2, a1_3)
+	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[2][1])
+
+	a2_1 = mfs[0][0][ initial_values[0] == egfr_value] #egfr_low[egfr == egfr_value]
+	a2_2 = mfs[1][1][ initial_values[1] == erk_value] #erk_high[erk == erk_value]
+	a2_3 = mfs[3][0][ initial_values[3] == time_value]
+
+	if( a2_1.size == 0):
+		a2_1 = mfs[0][0][ find_closest(initial_values[0], egfr_value)]
+	if( a2_2.size == 0):
+		a2_2 = mfs[1][1][ find_closest(initial_values[1], erk_value)]
+	if( a2_3.size == 0):
+		a2_3 = mfs[3][0][ find_closest(initial_values[3], time_value)]
+
+	a2 = max(a2_1 , a2_2, a2_3)
+	c2 = np.fmin( np.linspace(a2, a2, 100), mfs[2][0] )
+
+	c_com = np.fmax(c1, c2)
+	return fuzz.defuzz(initial_values[2], c_com, 'centroid')
+
+def compute_erk(raf_value, time_value, initial_values, mfs):
+	"""Rules-
+		If raf is high and time is high erk is high
+		If raf is low or time is low then erk is low"""
+	a1_1 = mfs[0][1][initial_values[0] == raf_value]
+	a1_2 = mfs[2][1][initial_values[2] == time_value]
+
+	if( a1_1.size == 0):
+		a1_1 = mfs[0][1][ find_closest(initial_values[0], raf_value)]
+	if( a1_2.size == 0):
+		a1_2 = mfs[2][1][ find_closest(initial_values[2], time_value)]
+
+	a1 = min(a1_1, a1_2)
+	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[1][1])
+
+	a2_1 = mfs[0][0][initial_values[0] == raf_value]
+	a2_2 = mfs[2][0][initial_values[2] == time_value]
+
+	if( a2_1.size == 0):
+		a2_1 = mfs[0][0][ find_closest(initial_values[0], raf_value)]
+	if( a2_2.size == 0):
+		a2_2 = mfs[2][0][ find_closest(initial_values[2], time_value)]
+
+	a2 = max(a2_1, a2_2)
+	c2 = np.fmin( np.linspace(a2, a2, 100), mfs[1][0])
+
+	c_com = np.fmax(c1,c2)
+	return fuzz.defuzz( initial_values[1], c_com, 'centroid')
+
+def compute_akt(pi3k_value, time_value, initial_values, mfs):
+	"""Rules-
+		If pi3k is high and time is high akt is high
+		If pi3k is low or time is low then akt is low"""
+	a1_1 = mfs[0][1][initial_values[0] == pi3k_value]
+	a1_2 = mfs[2][1][initial_values[2] == time_value]
+
+	if( a1_1.size == 0):
+		a1_1 = mfs[0][1][ find_closest(initial_values[0], pi3k_value)]
+	if( a1_2.size == 0):
+		a1_2 = mfs[2][1][ find_closest(initial_values[2], time_value)]
+
+	a1 = min(a1_1, a1_2)
+	c1 = np.fmin( np.linspace(a1, a1, 100), mfs[1][1])
+
+	a2_1 = mfs[0][0][initial_values[0] == raf_value]
+	a2_2 = mfs[2][0][initial_values[2] == time_value]
+
+	if( a2_1.size == 0):
+		a2_1 = mfs[0][0][ find_closest(initial_values[0], pi3k_value)]
+	if( a2_2.size == 0):
+		a2_2 = mfs[2][0][ find_closest(initial_values[2], time_value)]
+
+	a2 = max(a2_1, a2_2)
+	c2 = np.fmin( np.linspace(a2, a2, 100), mfs[1][0])
+
+	c_com = np.fmax(c1,c2)
+	return fuzz.defuzz( initial_values[1], c_com, 'centroid')
+
+def check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
 	y = np.copy(initial_cond)
+	if 0 in not_updated and 1 in not_updated:
+		pass
+
+	else:
+		time_indexes[0] = 1
+
+	y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][ time_indexes[0] ], (initial_values[0], initial_values[1], initial_values[2],\
+		 initial_values[7]), (mfs[0], mfs[1], mfs[2], mfs[7]))
+
+	time_indexes[0] = time_indexes[0] + 1
+
+	return (y, time_indexes)
+
+def check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs):
+
+	if 2 in not_updated and 6 in not_updated:
+		pass
+
+	elif 2 in not_updated and initial_cond[2] > 0.5 :
+		pass
+
+	elif 6 in not_updated and initial_cond[6] > 0.5 :		
+		pass
+
+	else:
+		time_indexes[1] = 1
+
+	y[3] = compute_raf(initial_cond[2], initial_cond[6], initial_values[7][ time_indexes[1]], \
+		 (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
+	time_indexes[1] = time_indexes[1] + 1
+	return (y, time_indexes)
+
+def check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs ):
+
+	if 2 in not_updated and 5 in not_updated:
+		pass
+
+	else:
+		time_indexes[2] =  1
+
+	y[4] = compute_pi3k(initial_cond[2], initial_cond[5], initial_values[7][ time_indexes[2]], \
+		 (initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
+
+	time_indexes[2] = time_indexes[2] + 1
+	return (y, time_indexes)
+
+def rules(prev_cond, initial_cond, time_indexes, (initial_values, mfs)):	
 	not_updated = []
 	for i in xrange(len(prev_cond)):
 		if prev_cond[i] == initial_cond[i]:
-			not_updated.append(i)
-	if 0 in prev_cond and 1 in prev_cond:
-		#print 'yes'
-		y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][time_index], (initial_values[0], initial_values[1], initial_values[2], initial_values[7]),\
-		 (mfs[0], mfs[1], mfs[2], mfs[7]))
-		time_index = time_index + 1
-	else:
-		y[2] = compute_egfr(initial_cond[0], initial_cond[1], initial_values[7][0], (initial_values[0], initial_values[1], initial_values[2], initial_values[7]),\
-		 (mfs[0], mfs[1], mfs[2], mfs[7]))
-	#y[3] = compute_raf(initial_cond[2], initial_cond[6], (initial_values[2], initial_values[6], initial_values[3]), (mfs[2], mfs[6], mfs[3]))
+			not_updated.append(i)		
+
+	y, time_indexes = check_egfr(not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
+	y, time_indexes = check_raf(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
+	y, time_indexes = check_pi3k(y, not_updated, prev_cond, initial_cond, time_indexes, initial_values, mfs )
 	#y[4] = compute_pi3k(initial_cond[2], initial_cond[5], (initial_values[2], initial_values[5], initial_values[4]), (mfs[2], mfs[5], mfs[4]))
 	#y[5] = initial_cond[3]
 	#y[6] = initial_cond[4]
-	return (y,time_index)
+	return (y,time_indexes)
 
 def main():
 	#Universal sets
@@ -182,29 +296,28 @@ def main():
 	raf = egf
 	pi3k = egf
 	erk = egf
-	time = np.linspace(0, 1, 100)
+	time = np.linspace(0, 10, 1000)
 	vals = (egf, hrg, egfr, raf, pi3k, erk, akt, time)
 	mfs = eval_membership_functions(vals)
 	
 	#print rules(y[0], 0, (vals,mfs))
-	j = [1, 1, 1, 1, 1, 1, 1]
+	times = [ 1, 1, 1, 1, 1]
 	for i in xrange(1, time.size):
-			temp,j = rules(y[i-2], y[i - 1], j , (vals, mfs))		
-			print j	
+			temp, times = rules(y[i-2], y[i - 1], times , (vals, mfs))		
+			#print times	
 			y = np.vstack((y, temp))
 			#print time[i ], y[i]
-	#print y[i], time[i]
+	print times
+	print y[i]
 	plt.title("Synch")
-	time = np.linspace(0,1,100)
-	#print time.size,y[1:,2].size
-	lines = plt.plot(time, y[:,2])	
+	lines = plt.plot(time, y[:,2], time, y[:,3])	
 	
-	plt.setp(lines[0],antialiased = False,color ='#000000',linewidth = 2, marker = "o", markeredgecolor = 'green', label = "erk")
-	#plt.setp(lines[1],antialiased = False,color ='red',linewidth = 2,linestyle = '--', marker = 'D', markeredgecolor = 'blue', markerfacecolor = 'none', label = "akt")
+	plt.setp(lines[0],antialiased = False,color ='#000000',linewidth = 2, marker = "o", markeredgecolor = 'green', label = "egfr")
+	plt.setp(lines[1],antialiased = False,color ='red',linewidth = 2,linestyle = '--', marker = 'D', markeredgecolor = 'blue', markerfacecolor = 'none', label = "raf")
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')
 	plt.ylabel('Species')
-	plt.axis([0,1.1,-0.05,1.2])
+	plt.axis([0,10.1,-0.05,1.2])
 	plt.grid(True)
 	plt.show()
 

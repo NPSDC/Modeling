@@ -1,29 +1,30 @@
 import numpy as np
-import skfuzzy as fuzz
+import skfuzzy as fuzz	
 
 '''The various membership functions are computed here'''
 
 def eval_membership_function_egf(egf_values):
 	'''Evaluates membership function for egf '''
-	egf_high = fuzz.gaussmf(egf_values, 1, 0.1)
-	egf_low = fuzz.gaussmf(egf_values, 0, 0.1)
+	egf_high = fuzz.smf(egf_values, 0, 1)
+	egf_low = fuzz.zmf(egf_values, 0, 1)
 	return (egf_low, egf_high)
 
 def eval_membership_function_hrg(hrg_values):
 	'''Evaluates membership function for hrg '''
-	hrg_high = fuzz.gaussmf(hrg_values, 1, 0.1)
-	hrg_low = fuzz.gaussmf(hrg_values, 0, 0.1)
+	hrg_high = fuzz.smf(hrg_values, 0 , 1)
+	hrg_low = fuzz.zmf(hrg_values, 0, 1)
 	return (hrg_low, hrg_high)
 
 def eval_membership_function_egfr(egfr_values, positive_change_egfr, negative_change_egfr):
 	'''Evaluates membership function for egfr '''
-	egfr_high = fuzz.gaussmf(egfr_values, 1, 0.1)
-	egfr_low = fuzz.gaussmf(egfr_values, 0, 0.1)
-	positive_change_egfr_high = fuzz.gaussmf(positive_change_egfr, 1, 0.1)
+	egfr_high = fuzz.gaussmf(egfr_values,1, 0.1)
+	egfr_low = fuzz.gaussmf(egfr_values,0, 0.1)
+	egfr_mid = fuzz.gaussmf(egfr_values, 0.5, 0.2)
+	positive_change_egfr_high = fuzz.gaussmf(positive_change_egfr,1, 0.1)
 	positive_change_egfr_low = fuzz.gaussmf(positive_change_egfr, 0, 0.1)
 	negative_change_egfr_high = fuzz.gaussmf(negative_change_egfr, -1, 0.1)
 	negative_change_egfr_low = fuzz.gaussmf(negative_change_egfr, 0, 0.1)
-	return (egfr_low, egfr_high, positive_change_egfr_low, positive_change_egfr_high, negative_change_egfr_low, negative_change_egfr_high)
+	return (egfr_low, egfr_high, positive_change_egfr_low, positive_change_egfr_high, negative_change_egfr_low, negative_change_egfr_high, egfr_mid)
 
 def eval_membership_function_raf(raf_values, positive_change_raf, negative_change_raf):
 	'''Evaluates membership function for raf '''
@@ -31,6 +32,7 @@ def eval_membership_function_raf(raf_values, positive_change_raf, negative_chang
 	raf_low = fuzz.gaussmf(raf_values, 0, 0.1)
 	positive_change_raf_high = fuzz.gaussmf(positive_change_raf, 1, 0.1)
 	positive_change_raf_low = fuzz.gaussmf(positive_change_raf, 0, 0.1)
+	positive_change_raf_mid = fuzz.gaussmf(positive_change_raf, 0.5, 0.1)
 	negative_change_raf_high = fuzz.gaussmf(negative_change_raf, -1, 0.1)
 	negative_change_raf_low = fuzz.gaussmf(negative_change_raf, 0, 0.1)
 	return (raf_low, raf_high, positive_change_raf_low, positive_change_raf_high, negative_change_raf_low, negative_change_raf_high)
@@ -59,11 +61,12 @@ def eval_membership_function_akt(akt_values, positive_change_akt, negative_chang
 	'''Evaluates membership function for akt '''
 	akt_high = fuzz.gaussmf(akt_values, 1, 0.1)
 	akt_low = fuzz.gaussmf(akt_values, 0, 0.1)
+	akt_mid = fuzz.gaussmf(akt_values, 0.5, 0.2)
 	positive_change_akt_high = fuzz.gaussmf(positive_change_akt, 1, 0.1)
 	positive_change_akt_low = fuzz.gaussmf(positive_change_akt, 0, 0.1)
 	negative_change_akt_high = fuzz.gaussmf(negative_change_akt, -1, 0.1)
 	negative_change_akt_low = fuzz.gaussmf(negative_change_akt, 0, 0.1)
-	return (akt_low, akt_high, positive_change_akt_low, positive_change_akt_high, negative_change_akt_low, negative_change_akt_high)
+	return (akt_low, akt_high, positive_change_akt_low, positive_change_akt_high, negative_change_akt_low, negative_change_akt_high, akt_mid)
 
 def eval_membership_function_time(time_values):
 	'''Evaluates membership function for time '''

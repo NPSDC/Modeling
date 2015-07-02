@@ -180,215 +180,77 @@ def compute_egfr_change(egf_value, hrg_value, time_values, initial_values, mfs )
 
 def compute_raf_change(egfr_value, akt_value, time_values, initial_values, mfs):
 	"""Rules---
-	1)If egfr is high and time_egfr is high or akt is high and time_akt is high then positive_change_raf is high and negative_change_raf is low
-	2)If egfr is high and akt is high and time_egfr is low  and time_akt is low then positive_change_raf is low and negative_change_raf is low
-	3)If egfr is high and akt is low and time_egfr is low  then positve_change_raf is low and negative_change_raf is low
-	4)If egfr is low and akt is high and time_akt is low then positive_change_raf is low and negative_change_raf is low
-	5)If egfr is low and akt is low  and time_egfr is high and time_akt is high then negative_change_raf is high and positive_change_raf is low
-	6)If egfr is low and akt is low  and (time_egfr is low or time_akt is low) then negative_change_raf is low and positive_change_raf is low
-	7)If egfr is mid and akt is mid then positive_change_raf is low and negative_change_raf is low
-	8)If egfr is mid and akt is low then positive_change_raf is low and negative_change_raf is low
-	9)If egfr is low and akt is mid then positive_change_raf is low and negative_change_raf is low
-	10)If egfr is high and akt is mid and time_egfr is low  then positve_change_raf is low and negative_change_raf is low
-	11)If egfr is mid and akt is high and time_akt is low then positive_change_raf is low and negative_change_raf is low
+	1)If egfr is high and time_egfr is high or akt is high and time_akt is high then positive_change_raf is high 
+	2)If egfr is high1 and akt is high1 and time_egfr is low  and time_akt is low then positive_change_raf is low
+	3)If egfr is high1 and akt is low and time_egfr is low  then positve_change_raf is low
+	4)If egfr is low and akt is high1 and time_akt is low then positive_change_raf is low and negative_change_raf is low
+	5)If egfr is low and akt is low  and positive_change_raf is low
 	"""
 	###Positive Change
 	#Antecedent 1
-	a1_1 = mfs[0][1][initial_values[0][0] == egfr_value] #egfr_high[egfr == egfr_value]
-	a1_2 = mfs[1][1][initial_values[1][0] == akt_value]  #akt_high[akt == akt_value]
+	f = interp1d(initial_values[0][0], mfs[0][1])
+	a1_1 = f(egfr_value) #egfr_high[egfr == egfr_value]
+	f = interp1d(initial_values[1][0], mfs[1][1])
+	a1_2 = f(akt_value)  #akt_high[akt == akt_value]
 	a1_3 = mfs[3][1][initial_values[3] == time_values[0]] #time_high[time == time_egfr_value]
 	a1_4 = mfs[3][1][initial_values[3] == time_values[1]] #time_high[time == time_akt_value]
 
-	if( a1_1.size == 0):
-		a1_1 = interp( egfr_value, initial_values[0][0], mfs[0][1])
-	if( a1_2.size == 0):
-		a1_2 = interp(akt_value, initial_values[1][0],  mfs[1][1])
-	
-	a1 = max( min(a1_1 , a1_3), min(a1_2, a1_4) )
-	
+	a1 = max( min(a1_1 , a1_3), min(a1_2, a1_4) )	
 	
 	#Consequent 1
 	c1_pos = np.fmin( a1, mfs[2][3])  #mfs[2][3] is positive_change_raf_high
-	c1_neg = np.fmin(a1, mfs[2][4])
 	
 	##Antecedent 2
-	a2_1 = a1_1 #egfr_high[egfr == egfr_value]
-	a2_2 = a1_2 #akt_high[akt == akt_value]
+	f = interp1d(initial_values[0][0], mfs[0][6])
+	a2_1 = f(egfr_value) #egfr_high1[egfr == egfr_value]
+	f = interp1d(initial_values[0][0], mfs[1][6])
+	a2_2 = f(akt_value) #akt_high1[akt == akt_value]
 	a2_3 = mfs[3][0][initial_values[3] == time_values[0]] #time_low[time == time_egfr_value]
 	a2_4 = mfs[3][0][initial_values[3] == time_values[1]] #time_low[time == time_akt_value]
 	a2 = min(a2_1, a2_2, a2_3, a2_4)
 
 	#Consequent 2
-	c2_neg = np.fmin(a2, mfs[2][2])  #mfs[2][2] is positive_change_raf_low
-	c2_pos = np.fmin(a2, mfs[2][4])
-	c_com_negative = np.fmax(c1_neg, c2_neg)
+	c2_pos = np.fmin(a2, mfs[2][2])  #mfs[2][2] is positive_change_raf_low
 	c_com_positive = np.fmax(c1_pos, c2_pos)
-	#Antecedent 3
-	a3_1 = a1_1 #egfr_high[ egfr == egfr_value]
-	a3_2 = mfs[1][0][ initial_values[1][0] == akt_value] #akt_low[akt == akt_value]
-	a3_3 = a2_3 #time_low[ time == time_egfr_value]
 
-	if(a3_2.size == 0):
-		a3_2 = interp(akt_value, initial_values[1][0], mfs[1][0])
+	#Antecedent 3
+	a3_1 = a2_1 #egfr_high1[ egfr == egfr_value]
+	f = interp1d(initial_values[1][0], mfs[1][0])
+	a3_2 = f(akt_value) #akt_low[akt == akt_value]
+	a3_3 = a2_3 #time_low[ time == time_egfr_value]
 
 	a3 = min(a3_1, a3_2, a3_3)
 
 	#Consequent 3
 	c3_pos = np.fmin(a3, mfs[2][2]) #mfs[2][2] is positive_change_raf_low
-	c3_neg = np.fmin(a3, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c3_neg)
 	c_com_positive = np.fmax(c_com_positive, c3_pos)
 
 	#Antecedent 4
-	a4_1 = mfs[0][0][ initial_values[0][0] == egfr_value ] #egfr_low[egfr == egfr_value]
-	a4_2 = a1_2 #akt_high[akt == akt_value]
+	f = interp1d(initial_values[0][0], mfs[0][0])
+	a4_1 = f(egfr_value) #egfr_low[egfr == egfr_value]
+	a4_2 = a2_2 #akt_high1[akt == akt_value]
 	a4_3 = a2_4 #time_low[time == time_akt_value]
-
-	if(a4_1.size == 0):
-		a4_1 = interp(egfr_value, initial_values[0][0], mfs[0][0] )
 
 	a4 = min(a4_1, a4_2, a4_3)	
 
 	#Consequent 4
 	c4_pos = np.fmin(a4, mfs[2][2]) #mfs[2][2] is positive_change_raf_low
-	c4_neg = np.fmin(a4, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c4_neg)
 	c_com_positive = np.fmax(c_com_positive, c4_pos)
-	#A7
-	f = interp1d(initial_values[0][0], mfs[0][6])
-	a7_1 = f(egfr_value)
-	f = interp1d(initial_values[1][0], mfs[1][6])
-	a7_2 = f(akt_value)
-	a7 = min(a7_1, a7_2)
-	c7_pos = np.fmin(a7, mfs[2][2])
-	c7_neg = np.fmin(a7, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c7_neg)
-	c_com_positive = np.fmax(c_com_positive, c7_pos)
-	#A8
-	a8_1 = a7_1
-	a8_2 = a3_2
-	a8 = min(a8_1, a8_2)
-	c8_pos = np.fmin(a8, mfs[2][2])
-	c8_neg = np.fmin(a8, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c8_neg)
-	c_com_positive = np.fmax(c_com_positive, c8_pos)
-	#A9
-	a9_1 = a4_1
-	a9_2 = a7_2
-	a9 = min(a9_1, a9_2)
-	c9_pos = np.fmin(a9, mfs[2][2])
-	c9_neg = np.fmin(a9, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c9_neg)
-	c_com_positive = np.fmax(c_com_positive, c9_pos)
-	#A10
-	a10_1 = a1_1
-	a10_2 = a7_2
-	a10_3 = a2_3
-	a10 = min(a10_1, a10_2, a10_3)
-	c10_pos = np.fmin(a10, mfs[2][2])
-	c10_neg = np.fmin(a10, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c10_neg)
-	c_com_positive = np.fmax(c_com_positive, c10_pos)
-	#A11
-	a11_1 = a7_1
-	a11_2 = a1_2
-	a11_3 = a2_4
-	a11= min(a11_1, a11_2, a11_3)
-	c11_pos = np.fmin(a11, mfs[2][2])
-	c11_neg = np.fmin(a11, mfs[2][4])
-	c_com_negative = np.fmax(c_com_negative, c11_neg)
-	c_com_positive = np.fmax(c_com_positive, c11_pos)
-	'''c_pos = np.fmax(np.fmax(np.fmax(c7, c8), np.fmax(c9,c10)), c11)
-	c_com_positive = np.fmax(np.fmax(c1, c2), np.fmax(c3, c4))
-	c_com_positive = np.fmax(c_com_positive, c_pos)'''
-	#find_if_middle(c_com_positive, ((a1_1, a1_2, a1_3,a1_4), (a2_1, a2_2, a2_3, a2_4), (a3_1, a3_2, a3_3), (a4_1, a4_2, a4_3)), initial_values[2][1])
-	'''if(math.log10(a1) >=-6 and math.log10(a1) <= -5):
-		plt.plot(initial_values[2][1], mfs[2][1])
-		plt.show()
-		plt.plot(initial_values[2][1], c1)
-		plt.show()
-		plt.plot(initial_values[2][1], c3)
-		plt.show()
-		plt.plot(initial_values[2][1], c_com_positive)
-		plt.show()
-		print c_com_positive'''
-	'''plt.plot(initial_values[2][1], c2)
-	plt.show()'''
-	#if(initial_values[3][5] == time_values[1]):
-	'''	plt.plot(initial_values[2][1], c1)
-		plt.show()
-		plt.plot(initial_values[2][1], c2)
-		plt.show()
-		plt.plot(initial_values[2][1], c3)
-		plt.show()
-		plt.plot(initial_values[2][1], c4)
-		plt.show()'''
-	#plt.plot(initial_values[2][1], c_com_positive)
-	#plt.show()
-	#	print c_com_positive
-	#print a1_1, a1_2, a4_1, a3_2
-	#print a1,a2,a3,a4
-	'''plt.plot(initial_values[2][0], mfs[0][0])
-	plt.show()'''
-	#plt.plot(initial_values[2][1], c3)
-	#plt.show()
-	'''plt.plot(initial_values[2][1], c4)
-	print a4
-	plt.show()'''
 	
-	'''plt.plot(initial_values[2][1], c_com_positive)
-	plt.show()'''
-	
-
- 	###Negative
 	#Antecedent 5
 	a5_1 = a4_1 #egfr_low[egfr == egfr_value]
 	a5_2 = a3_2 #akt_low[akt == akt_value]
-	a5_3 = a1_3 #time_high[time == time_egfr_value]
-	a5_4 = a1_4 #time_high[time == time_akt_value]
-
-	a5 = min(a5_1 ,a5_2, a5_3, a5_4 )
+	
+	a5 = min(a5_1 ,a5_2)
 
 	#Consequent 5
-	c5_neg = np.fmin( a5, mfs[2][5]) #mfs[2][5] is raf_negative_change_high
 	c5_pos = np.fmin(a5, mfs[2][2])
-	c_com_negative = np.fmax(c_com_negative, c5_neg)
 	c_com_positive = np.fmax(c_com_positive, c5_pos)
-	#Antecedent 6
-	a6_1 = a4_1  #egfr_low[egfr == egfr_value]
-	a6_2 = a3_2  #akt_low[akt == akt_value]
-	a6_3 = a2_3  #time_low[time == time_egfr_value]
-	a6_4 = a2_4  #time_low[time == time_akt_value]
 
-	a6 = min(a6_1, a6_2,max( a6_3, a6_4))
-#	print a5_1,a5_2,a5_3,a5_4,a6_3,a6_4	
-	#Consequent 6
-	c6_neg = np.fmin(a6, mfs[2][4]) #mfs[2][4] is raf_negative_change_low
-	c6_pos = np.fmin(a6, mfs[2][2])
-	#print a5,a6
-	c_com_negative = np.fmax(c_com_negative, c6_neg)
-	c_com_positive = np.fmax(c_com_positive, c6_pos)
-	try:
-		'''	plt.plot(initial_values[2][2], c5)
-		plt.plot(initial_values[2][2], c6)
-		plt.show()
-		plt.plot(initial_values[2][2], c_com_negative)
-		plt.show()'''
-		neg_change = centroid(initial_values[2][2], c_com_negative) #initial_values[2][2] is raf_negative_change
-	except AssertionError as e:
-		neg_change = 0
-	try :
-		pos_change = centroid(initial_values[2][1], c_com_positive) #initial_values[2][1] is positve_change_raf
-	except AssertionError as e:
-		pos_change = 0
-	#print a6_1,a6_2,a6_3,a6_4
-	#print a7, a8, a9, a10, a11
-	#print a1,a2,a3,a4,a5,a6
-	#find_if_middle(c_com_negative, ((a5_1, a5_2, a5_3,a5_4), (a6_1, a6_2, a6_3, a6_4)), initial_values[2][1])
-	#if(initial_values[3][39] == time_values[0]):
-	print pos_change,neg_change, pos_change + neg_change
-#plt.plot(initial_values[2][2], c_com_negative)	print neg_change,pos_change, neg_change + pos_change
-	return pos_change + neg_change
+	pos_change = fuzz.defuzz(initial_values[2][1], c_com_positive, 'centroid') #initial_values[2][1] is positve_change_raf
+	
+	#print pos_change, neg_change, pos_change + neg_change
+	return pos_change 
 
 def compute_pi3k_change(egfr_value, erk_value, time_values, initial_values, mfs):
 	"""Rules ---
@@ -633,7 +495,7 @@ def compute_raf(change_raf_reflected, not_updated, initial_cond, time_raf_index,
 	if(time_akt_index >= initial_values[7].size):	
 		time_akt_index = initial_values[7].size - 1
 	
-	temp = change_raf_reflected + compute_raf_change(initial_cond[2], initial_cond[6],\
+	temp =  compute_raf_change(initial_cond[2], initial_cond[6],\
 		   (initial_values[7][ time_egfr_index ], initial_values[7][ time_akt_index ] ),\
 	 	   (initial_values[2], initial_values[6], initial_values[3], initial_values[7]), (mfs[2], mfs[6], mfs[3], mfs[7]))
 
@@ -777,7 +639,7 @@ def main():
 	negative_change_akt = negative_change_egfr
 
 	time = np.linspace(0, 10, 101)
-	time_1 = np.linspace(0, 1, 10)
+	time_1 = np.linspace(0, 1, 11)
 	vals = (egf, hrg, (egfr, positive_change_egfr, negative_change_egfr),\
 		   (raf, positive_change_raf, negative_change_raf),\
 		   (pi3k, positive_change_pi3k, negative_change_pi3k),\
@@ -790,6 +652,7 @@ def main():
 	for i in xrange(1, time.size):	#Also the for egfr 0 is for egf and 1 for hrg; for raf 0 for egfr and 1 for akt; for pi3k 0 for egfr and 1 for erk
 		temp, times, change_reflected = rules(change_reflected, y[i-2], y[i - 1], times , (vals, mfs))
 		y = np.vstack((y, temp))		
+		#print 'egfr ',y[i][2]
 		#print y[i][4], times[1], change_reflected[4]
 		#if i < 31:
 			#print y[i][2], times[1]

@@ -254,20 +254,18 @@ def compute_raf_change(egfr_value, akt_value, time_values, initial_values, mfs):
 
 def compute_pi3k_change(egfr_value, erk_value, time_values, initial_values, mfs):
 	"""Rules ---
-	if egfr is high and time_egfr is high and erk is low and time_erk is high then postive_change_pi3k is high
-	if egfr is high and erk is low and (time_egfr is low or time_erk is low) then postive_change_pi3k is low
-	if egfr is low and time_egfr is high then  negative_change_pi3k is high
-	if erk is high and time_erk is high then negative_change_pi3k is high
-	if egfr is low and erk is high and time_egfr is low and time_erk is low then negative_change_pi3k is low
-	if egfr is low and erk is low and time_egfr is low then negative_change_pi3k is low
-	if egfr is high and erk is high and time_erk is low then negative_change_pi3k is low """
+	If egfr is high and time_egfr is high and erk is low and time_erk is high then postive_change_pi3k is high
+	If egfr is high1 and erk is low and (time_egfr is low or time_erk is low) then postive_change_pi3k is low
+	If egfr is low then positive_change_pi3k is low
+	If erk is high then postive_change_pi3k is low
+	"""
 
 	######Positive Change
 	#Antecedent 1
 	f = interp1d(initial_values[0][0], mfs[0][1])  
 	a1_1 = f(egfr_value) #egfr_high[egfr == egfr_value]
 	f = interp1d(initial_values[1][0], mfs[1][0])
-	a1_2 = f (erk_value) #erk_low[erk == erk_value
+	a1_2 = f (erk_value) #erk_low[erk == erk_value]
 	f = interp1d(initial_values[3], mfs[3][1])
 	a1_3 = f(time_values[0]) #time_high[time == time_egfr_value]
 	a1_4 = f(time_values[1]) #time_high[time == time_erk_value ]
@@ -276,7 +274,8 @@ def compute_pi3k_change(egfr_value, erk_value, time_values, initial_values, mfs)
 	c1 = np.fmin( a1, mfs[2][3]) #positive_change_pi3k is high
 
 	#Antecedent 2
-	a2_1 = a1_1 #egfr_high[egfr == egfr_value]
+	f = interp1d(initial_values[0][0], mfs[0][6]) 
+	a2_1 = f(egfr_value) #egfr_high[egfr == egfr_value]
 	a2_2 = a1_2 #erk_low[erk == erk_value]
 	f = interp1d(initial_values[3], mfs[3][0]) #time_low
 	a2_3 = f(time_values[0]) #time_low[time == time_egfr_value]
@@ -286,10 +285,22 @@ def compute_pi3k_change(egfr_value, erk_value, time_values, initial_values, mfs)
 	c2 = np.fmin( a2, mfs[2][2] ) #positive_change_pi3k is low
 
 	c_com_positive = np.fmax(c1, c2)
+
+	#Antecedent 3
+	f = interp1d(initial_values[0][0], mfs[0][0])
+	a3 = f(egfr_value)
+	c3 = np.fmin(a3, mfs[2][2])
+	c_com_positive = np.fmax(c_com_positive, c3)
+
+	#Antecedent 4
+	f = interp1d(initial_values[0][0], mfs[1][1])
+	a4 = f(erk_value)
+	c4 = np.fmin(a4, mfs[2][2])
+	c_com_positive = np.fmax(c_com_positive, c4)
+
 	pos_change = fuzz.defuzz(initial_values[2][1], c_com_positive, 'centroid')
-	#print a1_1,a1_2,a1_3,a1_4,a2_3,a2_4
-	#print egfr_value
-	#####Negative Change
+	
+	'''#####Negative Change
 	##Antecedent3
 	f = interp1d(initial_values[0][0], mfs[0][0]) #
 	a3_1 = f(egfr_value) #egfr_low[egfr == egfr_value]
@@ -328,18 +339,18 @@ def compute_pi3k_change(egfr_value, erk_value, time_values, initial_values, mfs)
 	c_com_negative = np.fmax(c3, np.fmax(np.fmax(c4, c5), np.fmax(c6, c7)))
 	
 	neg_change = fuzz.defuzz(initial_values[2][2], c_com_negative, 'centroid')
-	#print pos_change,neg_change,time_values
-	return pos_change + neg_change
+	#print pos_change,neg_change,time_values'''
+	return pos_change 
 
 def compute_erk_change(raf_value, time_value, initial_values, mfs):
 	"""Rules-
 		If raf is high and time is high then positive_change_erk is high
-		If raf is high and time is low then positive_change_erk is low
+		If raf is high1 and time is low then positive_change_erk is low
+		If raf is low then positive_change_erk is low
 		If raf is low and time is high then negative_change_erk is high
 		If raf is low and time is low then negative_change_erk is low"""
 
-	###Positive Change
-
+	
 	#Antecedent 1
 	f = interp1d(initial_values[0][0], mfs[0][1])
 	a1_1 = f(raf_value) #raf_high[raf == raf_value]
@@ -350,7 +361,8 @@ def compute_erk_change(raf_value, time_value, initial_values, mfs):
 	c1 = np.fmin( a1, mfs[1][3]) #mfs[1][3] is positive_change_erk_high
 
 	#Antecedent 2
-	a2_1 = a1_1
+	f = interp1d(initial_values[0][0], mfs[0][6])
+	a2_1 = f(raf_value)
 	f = interp1d(initial_values[2], mfs[2][0]) #time_low[time == time_value]
 	a2_2 = f(time_value)
 
@@ -358,12 +370,18 @@ def compute_erk_change(raf_value, time_value, initial_values, mfs):
 	c2 = np.fmin( a2, mfs[1][2]) #mfs[1][2] is positive_change_raf_low
 
 	c_com_positive = np.fmax(c1,c2)
+
+	f = interp1d(initial_values[0][0], mfs[0][0])
+	a3 = f(raf_value)
+	c3 = np.fmin(a3, mfs[1][2])
+
+	c_com_positive = np.fmax(c_com_positive, c3)
 	pos_change = fuzz.defuzz( initial_values[1][1], c_com_positive, 'centroid') #initial_values[1][1] is positive_change_erk
 
 	###Negative Change
 
 	#Antecedent 3
-	f = interp1d(initial_values[0][0], mfs[0][0])
+	'''f = interp1d(initial_values[0][0], mfs[0][0])
 	a3_1 = f(raf_value) #raf_low[raf == raf_value]
 	a3_2 = a1_2 #time_high[time == time_value]
 
@@ -378,15 +396,17 @@ def compute_erk_change(raf_value, time_value, initial_values, mfs):
 	c4 = np.fmin(a4, mfs[1][4]) #mfs[1][4] is negative_change_erk_low
 
 	c_com_negative = np.fmax(c3, c4)
-	neg_change = fuzz.defuzz(initial_values[1][2], c_com_negative, 'centroid') #initial_values[1][2] is negative_change_erk
+	neg_change = fuzz.defuzz(initial_values[1][2], c_com_negative, 'centroid') #initial_values[1][2] is negative_change_erk'''
 	
 	#print pos_change, neg_change
-	return pos_change + neg_change
+	#print pos_change
+	return pos_change 
 
 def compute_akt_change(pi3k_value, time_value, initial_values, mfs):
 	"""Rules-
 		If pi3k is high and time is high then positive_change_akt is high
-		If pi3k is high and time is low then positive_change_akt is low
+		If pi3k is high1 and time is low then positive_change_akt is low
+		If pi3k is low then positive_change_pi3k is low
 		If pi3k is low and time is high then negative_change_akt is high
 		If pi3k is low and time is low then negative_change_akt is low"""
 
@@ -401,7 +421,8 @@ def compute_akt_change(pi3k_value, time_value, initial_values, mfs):
 	c1 = np.fmin(a1, mfs[1][3]) #positive_change_akt is high
 
 	#Antecedent 2
-	a2_1 = a1_1 #pi3k_high[pi3k == pi3k_value]
+	f = interp1d(initial_values[0][0], mfs[0][6])
+	a2_1 = f(pi3k_value) #pi3k_high[pi3k == pi3k_value]
 	f = interp1d(initial_values[2], mfs[2][0])
 	a2_2 = f(time_value) #time_low[time == time_value]
 
@@ -409,12 +430,17 @@ def compute_akt_change(pi3k_value, time_value, initial_values, mfs):
 	c2 = np.fmin( a2, mfs[1][2]) #positive_change_akt is low
 
 	c_com_positive = np.fmax(c1,c2)
+
+	f = interp1d(initial_values[0][0], mfs[0][0])
+	a3 = f(pi3k_value)
+	c3 = np.fmin(a3, mfs[1][2])
+	c_com_positive = np.fmax(c_com_positive, c3)
 	pos_change = fuzz.defuzz( initial_values[1][1], c_com_positive, 'centroid') #initial_values[1][1] is positive_change_akt
 
 	###Negative Change
 
 	#Antecedent 3
-	f = interp1d(initial_values[0][0], mfs[0][0])
+	'''f = interp1d(initial_values[0][0], mfs[0][0])
 	a3_1 = f(pi3k_value) #pi3k_low[pi3k == pi3k_value]
 	a3_2 = a1_2 #time_high[time == time_value]
 
@@ -429,9 +455,9 @@ def compute_akt_change(pi3k_value, time_value, initial_values, mfs):
 	c4 = np.fmin(a4, mfs[1][4]) #mfs[1][4] is negative_change_akt_low
 
 	c_com_negative = np.fmax(c3, c4)
-	neg_change = fuzz.defuzz(initial_values[1][2], c_com_negative, 'centroid') #initial_values[1][2] is negative_change_akt
+	neg_change = fuzz.defuzz(initial_values[1][2], c_com_negative, 'centroid') #initial_values[1][2] is negative_change_akt'''
 
-	return pos_change + neg_change
+	return pos_change 
 
 def compute_egfr(change_egfr_reflected, not_updated, initial_cond, time_egfr_index, initial_values, mfs):
 
@@ -533,7 +559,7 @@ def compute_pi3k(change_pi3k_reflected, not_updated, initial_cond, time_pi3k_ind
 	if(time_erk_index >= time_size):
 		time_erk_index = time_size - 1
 
-	temp = change_pi3k_reflected + compute_pi3k_change(initial_cond[2], initial_cond[5], \
+	temp =  compute_pi3k_change(initial_cond[2], initial_cond[5], \
 		   (initial_values[7][ time_egfr_index], initial_values[7][time_erk_index]), \
 		   (initial_values[2], initial_values[5], initial_values[4], initial_values[7]), (mfs[2], mfs[5], mfs[4], mfs[7]))
 
@@ -560,7 +586,7 @@ def compute_erk(change_erk_reflected, not_updated, initial_cond, time_erk_index,
 	if(time_raf_index >= time_size):
 		time_raf_index = time_size - 1
 
-	temp = change_erk_reflected + compute_erk_change(initial_cond[3], initial_values[7][ time_raf_index], \
+	temp =  compute_erk_change(initial_cond[3], initial_values[7][ time_raf_index], \
 		 (initial_values[3], initial_values[5], initial_values[7]), (mfs[3], mfs[5], mfs[7]))	
 
 	if (temp >= 0 and temp <= 1):
@@ -586,7 +612,7 @@ def compute_akt(change_akt_reflected, not_updated, initial_cond, time_akt_index,
 	if(time_pi3k_index >= time_size):
 		time_pi3k_index = time_size - 1
 
-	temp = change_akt_reflected + compute_akt_change(initial_cond[4], initial_values[7][ time_pi3k_index], \
+	temp = compute_akt_change(initial_cond[4], initial_values[7][ time_pi3k_index], \
 		 (initial_values[4], initial_values[6], initial_values[7]), (mfs[4], mfs[6], mfs[7]))
 		
 	if(temp >= 0 and temp <= 1):
@@ -604,9 +630,9 @@ def rules(change_reflected, prev_cond, initial_cond, time_indexes, (initial_valu
 		
 	y[2], time_indexes[0], change_reflected[2] = compute_egfr(change_reflected[2], not_updated, initial_cond, time_indexes[0], initial_values, mfs )
 	y[3], time_indexes[1], change_reflected[3] = compute_raf(change_reflected[3], not_updated, initial_cond, time_indexes[1], initial_values, mfs )
-	#y[4], time_indexes[2], change_reflected[4] = compute_pi3k(change_reflected[4], not_updated,  initial_cond, time_indexes[2], initial_values, mfs )
-	#y[5], time_indexes[3], change_reflected[5] = compute_erk(change_reflected[5], not_updated, initial_cond, time_indexes[3], initial_values, mfs )
-	#y[6], time_indexes[4], change_reflected[6] = compute_akt(change_reflected[6], not_updated, initial_cond, time_indexes[4], initial_values, mfs )
+	y[4], time_indexes[2], change_reflected[4] = compute_pi3k(change_reflected[4], not_updated,  initial_cond, time_indexes[2], initial_values, mfs )
+	y[5], time_indexes[3], change_reflected[5] = compute_erk(change_reflected[5], not_updated, initial_cond, time_indexes[3], initial_values, mfs )
+	y[6], time_indexes[4], change_reflected[6] = compute_akt(change_reflected[6], not_updated, initial_cond, time_indexes[4], initial_values, mfs )
 	return (y,time_indexes, change_reflected)
 
 def main():
@@ -652,6 +678,7 @@ def main():
 	for i in xrange(1, time.size):	#Also the for egfr 0 is for egf and 1 for hrg; for raf 0 for egfr and 1 for akt; for pi3k 0 for egfr and 1 for erk
 		temp, times, change_reflected = rules(change_reflected, y[i-2], y[i - 1], times , (vals, mfs))
 		y = np.vstack((y, temp))		
+
 		#print 'egfr ',y[i][2]
 		#print y[i][4], times[1], change_reflected[4]
 		#if i < 31:
@@ -661,7 +688,7 @@ def main():
 	
 	plt.title("Synch")
 	
-	lines = plt.plot(time, y[:,3])	
+	lines = plt.plot(time, y[:,6])	
 	
 	plt.legend(loc='upper right')
 	plt.xlabel('Time')

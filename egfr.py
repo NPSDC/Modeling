@@ -48,11 +48,15 @@ def calculate_egfr_mfs(time, egf, egf_index):
 
 def calculate_raf_mfs(initial_vals):
 	#Raf
-	egfr_low = fuzz.zmf(initial_vals[2], initial_vals[2][0], 0.95) #0,0.95
-	egfr_high = fuzz.smf(initial_vals[2], 0.15, initial_vals[2][initial_vals[2].size - 1]) #0.25,0.9
-	raf_low = fuzz.gaussmf(initial_vals[3], initial_vals[3][0], initial_vals[3][initial_vals[3].size - 1]/20)
-	raf_high = fuzz.gaussmf(initial_vals[3], initial_vals[3][initial_vals[3].size - 1], initial_vals[3][initial_vals[3].size - 1]/20)
-	raf = (egfr_low, egfr_high, raf_low, raf_high)
+	egfr_low = fuzz.zmf(initial_vals[2], initial_vals[2][0], 0.40) #0,0.95
+	egfr_high = fuzz.smf(initial_vals[2], 0.7, initial_vals[2][initial_vals[2].size - 1]) #0.25,0.9
+	egfr_mid = fuzz.gaussmf(initial_vals[2], 0.50, .1)
+	egfr_mid2 = fuzz.gaussmf(initial_vals[2], 0.65, 0.1)
+	raf_low = fuzz.gaussmf(initial_vals[3], initial_vals[3][0], 0.05)
+	raf_high = fuzz.gaussmf(initial_vals[3], initial_vals[3][initial_vals[3].size - 1], 0.1)
+	raf_mid = fuzz.gaussmf(initial_vals[2], 0.10, 0.03)
+	raf_mid2 = fuzz.gaussmf(initial_vals[2], 0.30, 0.03)
+	raf = ((egfr_low, egfr_high, egfr_mid, egfr_mid2), (raf_low, raf_high, raf_mid, raf_mid2))
 	return raf
 
 def transform_gaussmf(x, param, val):
@@ -81,12 +85,18 @@ def calculate_egfr(time_mfs, egfr_mfs, egfr, time_index):
 	egfr_val = fuzz.defuzz(egfr, c_com, 'centroid')
 	return egfr_val
 
-def calculate_raf(egfr_mfs, raf_mf, raf, egfr_index):
+def calculate_raf(egfr_mfs, raf_mfs, raf, egfr_index):
 	a1 =  egfr_mfs[0][egfr_index]
-	c1 = np.fmin(a1, raf_mf[0])
+	c1 = np.fmin(a1, raf_mfs[0])
 	a2 = egfr_mfs[1][egfr_index]
-	c2 = np.fmin(a2, raf_mf[1])
+	c2 = np.fmin(a2, raf_mfs[1])
 	c_com = np.fmax(c1, c2)
+	a3 = egfr_mfs[2][egfr_index]
+	c3 = np.fmin(a3, raf_mfs[2])
+	c_com = np.fmax(c_com, c3)
+	a4 = egfr_mfs[3][egfr_index]
+	c4 = np.fmin(a4, raf_mfs[3])
+	c_com = np.fmax(c_com, c4)
 	raf_val = fuzz.defuzz(raf, c_com, 'centroid')
 	return raf_val
 
@@ -94,7 +104,7 @@ def rules(input_values, initial_values, mfs, time_index,):
 	y = np.copy(input_values)
 	egfr_mfs = calculate_egfr_mfs(initial_values[-1],  initial_values[0], np.searchsorted(initial_values[0], input_values[0], 'left'))
 	y[1] = calculate_egfr((egfr_mfs[0][0], egfr_mfs[0][1]), (egfr_mfs[0][2], egfr_mfs[0][3]), egfr_mfs[1], time_index )
-	y[2] = calculate_raf((mfs[0], mfs[1]), (mfs[2] , mfs[3]), initial_values[3], np.searchsorted(initial_values[2], input_values[1], 'left'))
+	y[2] = calculate_raf(mfs[0], mfs[1], initial_values[3], np.searchsorted(initial_values[2], input_values[1], 'left'))
 	return y
 
 def main():
@@ -134,7 +144,7 @@ def main():
 	plt.plot(time,y[:,1], time, y[:,2])
 	plt.xlabel('Time')
 	plt.ylabel('egfr')
-	plt.axis([-0.01,2.1,-0.01,1.01])	
+	plt.axis([-0.01,1.0,-0.01,1.01])	
 	plt.show()
 
 if(__name__ == '__main__'):

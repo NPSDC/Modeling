@@ -2,63 +2,6 @@ import numpy as np
 import skfuzzy as fuzz
 import matplotlib.pyplot as plt
 
-'''def calculate_egfr(time, egf, size):
-	time_low = fuzz.zmf(time, 0, 1 - egf + 0.1)
-	time_high = fuzz.smf(time, 0,1 -  egf + 0.1)
-	egfr = np.linspace(0, egf, size)
-	egfr_out = np.zeros(size)
-	egfr_high = fuzz.gaussmf(egfr, egf, 0.01)
-	egfr_low = fuzz.gaussmf(egfr, 0, 0.01)
-
-	for i in xrange(time.size):
-		a1 = time_low[i] 
-		c1 = np.fmin(a1, egfr_low)
-		a2 = time_high[i]
-		c2 = np.fmin(a2, egfr_high)
-		c_com = np.fmax(c1, c2)
-		egfr_out[i] = fuzz.defuzz(egfr, c_com, 'centroid')
-	#print egfr_out	
-	return egfr_out
-
-def main():
-	size = 100
-	time = np.linspace(0, 1, size)
-	egf = np.linspace(0, 1, 11)
-	egfr = np.zeros(size)
-
-	for i in egf:
-		if i == 0:
-			continue
-		temp_egfr = calculate_egfr(time, i, size)
-		plt.plot(time, temp_egfr)
-		plt.xlabel('Time')
-		plt.ylabel('egfr')
-		plt.axis([-0.01,1.1,-0.01,1.1])
-		egfr = np.vstack((egfr, temp_egfr))
-	plt.show()'''
-
-def calculate_egfr_mfs(time, egf, egf_index):
-	size = egf.size
-	egfr = np.linspace(0, egf[egf_index], size)
-	time_low = fuzz.zmf(time, 0, time[egf.size - 1] - time[egf_index] + time[1] )
-	time_high = fuzz.smf(time, 0, time[egf.size - 1] - time[egf_index] + time[1] )
-	egfr_low = fuzz.gaussmf(egfr, 0, egf[egf_index]/20)
-	egfr_high = transform_gaussmf(egfr, (egf[egf_index], egf[egf_index]/20), 1)
-	return ((time_low, time_high, egfr_low, egfr_high), egfr)
-
-def calculate_raf_mfs(initial_vals):
-	#Raf
-	egfr_low = fuzz.zmf(initial_vals[2], initial_vals[2][0], 0.40) #0,0.95
-	egfr_high = fuzz.smf(initial_vals[2], 0.7, initial_vals[2][initial_vals[2].size - 1]) #0.25,0.9
-	egfr_mid = fuzz.gaussmf(initial_vals[2], 0.50, .1)
-	egfr_mid2 = fuzz.gaussmf(initial_vals[2], 0.65, 0.1)
-	raf_low = fuzz.gaussmf(initial_vals[3], initial_vals[3][0], 0.05)
-	raf_high = fuzz.gaussmf(initial_vals[3], initial_vals[3][initial_vals[3].size - 1], 0.1)
-	raf_mid = fuzz.gaussmf(initial_vals[2], 0.10, 0.03)
-	raf_mid2 = fuzz.gaussmf(initial_vals[2], 0.30, 0.03)
-	raf = ((egfr_low, egfr_high, egfr_mid, egfr_mid2), (raf_low, raf_high, raf_mid, raf_mid2))
-	return raf
-
 def transform_gaussmf(x, param, val):
 	point = param[0]
 	y = fuzz.gaussmf(x, param[0], param[1])
@@ -76,75 +19,138 @@ def transform_gaussmf(x, param, val):
 
 	return y
 
+def calculate_egfr_mfs(time, egf, egfr, egf_index, t):
+	size = egf.size
+	#egfr = np.linspace(0, egf[egf_index], size)
+	time_low = fuzz.zmf(time, 0, time[egf.size*t - t] - time[egf_index*t] + time[t] )
+	time_high = fuzz.smf(time, 0, time[egf.size*t - t] - time[egf_index*t] + time[t] )
+	egfr_low = fuzz.gaussmf(egfr, 0, egf[egf_index]/20)
+	egfr_high = transform_gaussmf(egfr, (egf[egf_index], egf[egf_index]/20), 1)
+	return ((time_low, time_high, egfr_low, egfr_high))
+
+def calculate_raf_mfs(time, egfr, raf, egfr_index, t):
+	size = egfr.size
+	time_low = fuzz.zmf(time, 0, time[size*t - t] - time[egfr_index*t] + time[t])
+	time_high = fuzz.smf(time, 0, time[size*t - t] - time[egfr_index*t] + time[t])
+	raf_low = fuzz.gaussmf(raf, 0, egfr[egfr_index]/20)
+	raf_high = transform_gaussmf(raf, (egfr[egfr_index], egfr[egfr_index]/20), 1)
+	return (time_low, time_high, raf_low, raf_high)
+
 def calculate_egfr(time_mfs, egfr_mfs, egfr, time_index):
 	a1 = time_mfs[0][time_index]
 	c1 = np.fmin(a1, egfr_mfs[0])
 	a2 = time_mfs[1][time_index]
 	c2 = np.fmin(a2, egfr_mfs[1])
 	c_com = np.fmax(c1, c2)
-	egfr_val = fuzz.defuzz(egfr, c_com, 'centroid')
+	try:
+		egfr_val = fuzz.defuzz(egfr, c_com, 'centroid')
+	except AssertionError as e:
+		egfr_val = 0
 	return egfr_val
 
-def calculate_raf(egfr_mfs, raf_mfs, raf, egfr_index):
-	a1 =  egfr_mfs[0][egfr_index]
+def calculate_raf(time_mfs, raf_mfs, raf, time_index):
+	a1 =  time_mfs[0][time_index]
 	c1 = np.fmin(a1, raf_mfs[0])
-	a2 = egfr_mfs[1][egfr_index]
+	a2 = time_mfs[1][time_index]
 	c2 = np.fmin(a2, raf_mfs[1])
 	c_com = np.fmax(c1, c2)
-	a3 = egfr_mfs[2][egfr_index]
-	c3 = np.fmin(a3, raf_mfs[2])
-	c_com = np.fmax(c_com, c3)
-	a4 = egfr_mfs[3][egfr_index]
-	c4 = np.fmin(a4, raf_mfs[3])
-	c_com = np.fmax(c_com, c4)
-	raf_val = fuzz.defuzz(raf, c_com, 'centroid')
+	try:
+		raf_val = fuzz.defuzz(raf, c_com, 'centroid')
+	except AssertionError as e:
+		raf_val = 0
 	return raf_val
 
-def rules(input_values, initial_values, mfs, time_index,):
-	y = np.copy(input_values)
-	egfr_mfs = calculate_egfr_mfs(initial_values[-1],  initial_values[0], np.searchsorted(initial_values[0], input_values[0], 'left'))
-	y[1] = calculate_egfr((egfr_mfs[0][0], egfr_mfs[0][1]), (egfr_mfs[0][2], egfr_mfs[0][3]), egfr_mfs[1], time_index )
-	y[2] = calculate_raf(mfs[0], mfs[1], initial_values[3], np.searchsorted(initial_values[2], input_values[1], 'left'))
-	return y
+def rules(present_values, initial_values, time_indexes, time_length):
+	
+	y = np.copy(present_values)
+	egf_index = np.searchsorted(initial_values[0], present_values[0], 'left')
+	egfr_index = np.searchsorted(initial_values[2], present_values[1], 'left')
+
+	egfr_mfs = ()
+	raf_mfs = ()
+
+	if(egf_index > 0):
+		egfr_mfs = calculate_egfr_mfs(initial_values[-1], initial_values[0], initial_values[2], egf_index, time_length[0])
+	if(egfr_index > 0):
+		raf_mfs = calculate_raf_mfs(initial_values[-2], initial_values[2], initial_values[3], egfr_index, time_length[1])
+
+	
+	if(present_values[0] == 0):
+		y[1] = 0
+	else:
+		y[1] = calculate_egfr((egfr_mfs[0], egfr_mfs[1]), (egfr_mfs[2], egfr_mfs[3]), initial_values[2], time_indexes[0])
+
+	if(present_values[1] == 0):
+		y[2] = 0
+	else:
+		y[2] = calculate_raf((raf_mfs[0], raf_mfs[1]), (raf_mfs[2], raf_mfs[3]), initial_values[3], time_indexes[1])
+
+	not_updated = []
+	for i in xrange(len(y)):
+		if y[i] == present_values[i]:
+			not_updated.append(i)
+
+	if 0 in not_updated:
+		time_indexes[0] += 1
+	else:
+		time_indexes[0] = 1
+
+	if 1 in not_updated:
+		time_indexes[1] += 1
+
+		if(time_indexes[1] >= initial_values[-2].size):
+			time_indexes[1] = initial_values[-2].size - 1
+	else:
+		time_indexes[1] = 1
+
+	return y , time_indexes
 
 def main():
 	y = np.array([0.9, 0, 0])
-	size = 101
-	time = np.linspace(0, 2, size)
-	egf = np.linspace(0, 1, size)
-	egfr = np.linspace(0, y[0], size)
+	size = 100
+	time_length = [2, 1]
+	time = np.linspace(0, time_length[0], size*time_length[0] + 1)
+	egf = np.linspace(0, 1, size + 1)
+	egfr = np.linspace(0, 1, size + 1)
+	time_raf = np.linspace(0, time_length[1], size*time_length[1] + 1)
 	raf = egfr
-	egfr_out = np.zeros(size )
-	'''for i in xrange(1,size):
+	egfr_out = np.zeros(time.size )
+	raf_out = np.zeros(time_raf.size)
+	time_indexes = [1, 1]
+	'''for i in xrange(1,size+1):
 		if i == 0:
-			for t in xrange(1, size):
+			for t in xrange(1, time.size + 1):
 				egfr_out[t] = 0
 			continue
-		egfr_mfs = calculate_egfr_mfs(time, egf, i)
-		for t in xrange(1,size):
+		egfr_mfs = calculate_egfr_mfs(time, egf, egfr, i, time_length)
+		#raf_mfs = calculate_raf_mfs(time_raf, egfr, raf, i, 1)
+		for t in xrange(1,time.size):
 			if t == 0:
 				egfr_out[t] = 0
+				raf_out[t] = 0
 				continue
-			egfr_out[t] = calculate_egfr((egfr_mfs[0][0], egfr_mfs[0][1]), (egfr_mfs[0][2], egfr_mfs[0][3]), egfr_mfs[1], t)
-		
+			egfr_out[t] = calculate_egfr((egfr_mfs[0], egfr_mfs[1]), (egfr_mfs[2], egfr_mfs[3]), egfr, t)
+			#raf_out[t] = calculate_egfr((raf_mfs[0], raf_mfs[1]), (raf_mfs[2], raf_mfs[3]), raf, t)
+		#time = time_raf
 		if i%10 == 0:
+			#pass
 			plt.plot(time, egfr_out)
 			plt.xlabel('Time')
 			plt.ylabel('egfr')
-			plt.axis([-0.01,1.1,-0.01,1.1])	
+			#time_length = 1
+			plt.axis([-0.01,time_length + .1,-0.01,1.1])
 	plt.show()'''
-	initial_vals = (egf, egf, egfr, raf, time)
-	mfs = calculate_raf_mfs(initial_vals)
+	initial_vals = (egf, egf, egfr, raf, time_raf, time)
 	y.resize(1, 3)
 
 	for i in xrange(1, time.size):
-		temp = rules(y[i - 1], initial_vals, mfs, i)
+		temp, time_indexes = rules(y[i - 1], initial_vals, time_indexes, time_length)
 		y = np.vstack((y, temp))
-	print y[:,1:3]
+		#print time[i],y[i], time_indexes
 	plt.plot(time,y[:,1], time, y[:,2])
 	plt.xlabel('Time')
 	plt.ylabel('egfr')
-	plt.axis([-0.01,1.0,-0.01,1.01])	
+	plt.axis([-0.1,2.1 + 0.1,-0.01,1.01])		
 	plt.show()
 
 if(__name__ == '__main__'):

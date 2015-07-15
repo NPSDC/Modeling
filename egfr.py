@@ -28,13 +28,12 @@ def calculate_egfr_mfs(time, egf, egfr, egf_index, t):
 	egfr_high = transform_gaussmf(egfr, (egf[egf_index], egf[egf_index]/20), 1)
 	return ((time_low, time_high, egfr_low, egfr_high))
 
-def calculate_raf_mfs(time, egfr, raf, egfr_index, t):
-	size = egfr.size
-	time_low = fuzz.zmf(time, 0, time[size*t - t] - time[egfr_index*t] + time[t])
-	time_high = fuzz.smf(time, 0, time[size*t - t] - time[egfr_index*t] + time[t])
-	raf_low = fuzz.gaussmf(raf, 0, egfr[egfr_index]/20)
-	raf_high = transform_gaussmf(raf, (egfr[egfr_index], egfr[egfr_index]/20), 1)
-	return (time_low, time_high, raf_low, raf_high)
+def calculate_raf_mfs( egfr, raf):
+	egfr_low = fuzz.zmf(egfr, 0, 0.95)
+	egfr_high = fuzz.smf(egfr, 0.1, 0.9)
+	raf_low = fuzz.gaussmf(raf, 0, egfr[egfr.size - 1]/20)
+	raf_high = fuzz.gaussmf(raf, egfr[egfr.size - 1], egfr[egfr.size - 1]/20)
+	return (egfr_low, egfr_high, raf_low, raf_high)
 
 def calculate_egfr(time_mfs, egfr_mfs, egfr, time_index):
 	a1 = time_mfs[0][time_index]
@@ -48,10 +47,10 @@ def calculate_egfr(time_mfs, egfr_mfs, egfr, time_index):
 		egfr_val = 0
 	return egfr_val
 
-def calculate_raf(time_mfs, raf_mfs, raf, time_index):
-	a1 =  time_mfs[0][time_index]
+def calculate_raf(egfr_mfs, raf_mfs, raf, egfr_index):
+	a1 =  egfr_mfs[0][egfr_index]
 	c1 = np.fmin(a1, raf_mfs[0])
-	a2 = time_mfs[1][time_index]
+	a2 = egfr_mfs[1][egfr_index]
 	c2 = np.fmin(a2, raf_mfs[1])
 	c_com = np.fmax(c1, c2)
 	try:
@@ -72,7 +71,7 @@ def rules(present_values, initial_values, time_indexes, time_length):
 	if(egf_index > 0):
 		egfr_mfs = calculate_egfr_mfs(initial_values[-1], initial_values[0], initial_values[2], egf_index, time_length[0])
 	if(egfr_index > 0):
-		raf_mfs = calculate_raf_mfs(initial_values[-2], initial_values[2], initial_values[3], egfr_index, time_length[1])
+		raf_mfs = calculate_raf_mfs(initial_values[2], initial_values[3])
 
 	
 	if(present_values[0] == 0):
@@ -83,7 +82,7 @@ def rules(present_values, initial_values, time_indexes, time_length):
 	if(present_values[1] == 0):
 		y[2] = 0
 	else:
-		y[2] = calculate_raf((raf_mfs[0], raf_mfs[1]), (raf_mfs[2], raf_mfs[3]), initial_values[3], time_indexes[1])
+		y[2] = calculate_raf((raf_mfs[0], raf_mfs[1]), (raf_mfs[2], raf_mfs[3]), initial_values[3], egfr_index)
 
 	not_updated = []
 	for i in xrange(len(y)):
@@ -95,28 +94,19 @@ def rules(present_values, initial_values, time_indexes, time_length):
 	else:
 		time_indexes[0] = 1
 
-	if 1 in not_updated:
-		time_indexes[1] += 1
-
-		if(time_indexes[1] >= initial_values[-2].size):
-			time_indexes[1] = initial_values[-2].size - 1
-	else:
-		time_indexes[1] = 1
-
 	return y , time_indexes
 
 def main():
 	y = np.array([0.9, 0, 0])
 	size = 100
-	time_length = [2, 1]
+	time_length = [10, 0.2]
 	time = np.linspace(0, time_length[0], size*time_length[0] + 1)
 	egf = np.linspace(0, 1, size + 1)
-	egfr = np.linspace(0, 1, size + 1)
-	time_raf = np.linspace(0, time_length[1], size*time_length[1] + 1)
+	egfr = np.linspace(0, y[0], size + 1)
 	raf = egfr
 	egfr_out = np.zeros(time.size )
-	raf_out = np.zeros(time_raf.size)
 	time_indexes = [1, 1]
+	new_raf_out = np.zeros(time_length[0]*size + 1)
 	'''for i in xrange(1,size+1):
 		if i == 0:
 			for t in xrange(1, time.size + 1):
@@ -140,18 +130,27 @@ def main():
 			#time_length = 1
 			plt.axis([-0.01,time_length + .1,-0.01,1.1])
 	plt.show()'''
-	initial_vals = (egf, egf, egfr, raf, time_raf, time)
+	initial_vals = (egf, egf, egfr, raf, time)
 	y.resize(1, 3)
+	time_raf_delay = time_length[1]*size
 
-	for i in xrange(1, time.size):
-		temp, time_indexes = rules(y[i - 1], initial_vals, time_indexes, time_length)
-		y = np.vstack((y, temp))
-		#print time[i],y[i], time_indexes
-	plt.plot(time,y[:,1], time, y[:,2])
-	plt.xlabel('Time')
-	plt.ylabel('egfr')
-	plt.axis([-0.1,2.1 + 0.1,-0.01,1.01])		
-	plt.show()
+	if(time_raf_delay%2 == 0 or (time_raf_delay + 1)%2 == 0):
+		for i in xrange(1, time.size):
+			temp, time_indexes = rules(y[i - 1], initial_vals, time_indexes, time_length)
+			y = np.vstack((y, temp))
+			new_raf_out[i] = y[i, 2]
+			if( i > time_raf_delay ):
+				y[i, 2] = new_raf_out[i - time_raf_delay]
+			else:
+				y[i, 2] = 0
+		plt.plot(time,y[:,1], time, y[:,2])
+		plt.xlabel('Time')
+		plt.ylabel('egfr')
+		plt.axis([-0.01,time_length[0] + 0.01, -0.01, 1.01])		
+		plt.show()
+
+	else:
+		print "Not a valid time_raf_delay"
 
 if(__name__ == '__main__'):
 	main()

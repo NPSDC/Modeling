@@ -28,12 +28,14 @@ def calculate_egfr_mfs(time, egf, egfr, egf_index, t):
 	egfr_high = transform_gaussmf(egfr, (egf[egf_index], egf[egf_index]/20), 1)
 	return ((time_low, time_high, egfr_low, egfr_high))
 
-def calculate_raf_mfs( egfr, raf):
+def calculate_raf_mfs( egfr, akt, raf):
 	egfr_low = fuzz.zmf(egfr, 0, 0.95)
 	egfr_high = fuzz.smf(egfr, 0.1, 0.9)
+	akt_low = fuzz.zmf(akt, 0, 0.95)
+	akt_high = fuzz.smf(akt, 0.1, 0.9)
 	raf_low = fuzz.gaussmf(raf, 0, egfr[egfr.size - 1]/20)
 	raf_high = fuzz.gaussmf(raf, egfr[egfr.size - 1], egfr[egfr.size - 1]/20)
-	return (egfr_low, egfr_high, raf_low, raf_high)
+	return ((egfr_low, egfr_high), (akt_low, akt_high), (raf_low, raf_high))
 
 def calculate_erk_mfs(raf, erk):
 	raf_low = fuzz.zmf(raf, 0, 0.95)
@@ -70,12 +72,17 @@ def calculate_egfr(time_mfs, egfr_mfs, egfr, time_index):
 		egfr_val = 0
 	return egfr_val
 
-def calculate_raf(egfr_mfs, raf_mfs, raf, egfr_index):
-	a1 =  egfr_mfs[0][egfr_index]
-	c1 = np.fmin(a1, raf_mfs[0])
-	a2 = egfr_mfs[1][egfr_index]
+def calculate_raf(egfr_mfs, akt_mfs, raf_mfs, raf, egfr_index, akt_index):
+	a1 =  egfr_mfs[1][egfr_index]
+	c1 = np.fmin(a1, raf_mfs[1])
+	a2 = akt_mfs[1][akt_index]
 	c2 = np.fmin(a2, raf_mfs[1])
 	c_com = np.fmax(c1, c2)
+	a3_1 = egfr_mfs[0][egfr_index]
+	a3_2 = akt_mfs[0][akt_index]
+	a3 = min(a3_1, a3_2)
+	c3 = np.fmin(a3, raf_mfs[0])
+	c_com = np.fmax(c_com, c3)
 	try:
 		raf_val = fuzz.defuzz(raf, c_com, 'centroid')
 	except AssertionError as e:
@@ -127,45 +134,41 @@ def rules(present_values, initial_values, time_indexes, time_length):
 	
 	y = np.copy(present_values)
 	egf_index = np.searchsorted(initial_values[0], present_values[0], 'left')
-	egfr_index = np.searchsorted(initial_values[2], present_values[1], 'left')
-	raf_index = np.searchsorted(initial_values[3], present_values[2], 'left')
-	erk_index = np.searchsorted(initial_values[4], present_values[3], 'left')
-	pi3k_index = np.searchsorted(initial_values[5], present_values[4], 'left')
-
-	egfr_mfs = ()
-	raf_mfs = ()
-	erk_mfs = ()
-	pi3k_mfs = ()
+	egfr_index = np.searchsorted(initial_values[2], present_values[2], 'left')
+	raf_index = np.searchsorted(initial_values[3], present_values[3], 'left')
+	erk_index = np.searchsorted(initial_values[4], present_values[4], 'left')
+	pi3k_index = np.searchsorted(initial_values[5], present_values[5], 'left')
+	akt_index = np.searchsorted(initial_values[6], present_values[6], 'left')
 
 	if(egf_index > 0):
 		egfr_mfs = calculate_egfr_mfs(initial_values[-1], initial_values[0], initial_values[2], egf_index, time_length[0])
 
-	raf_mfs = calculate_raf_mfs(initial_values[2], initial_values[3])
+	raf_mfs = calculate_raf_mfs(initial_values[2], initial_values[6], initial_values[3])
 	pi3k_mfs = calculate_pi3k_mfs(initial_values[2], initial_values[4], initial_values[5])
 	erk_mfs = calculate_erk_mfs(initial_values[3], initial_values[4])
 	akt_mfs = calculate_akt_mfs(initial_values[5], initial_values[6])
 	
 	if(present_values[0] == 0):
-		y[1] = 0		
+		y[2] = 0		
 	else:
-		y[1] = calculate_egfr((egfr_mfs[0], egfr_mfs[1]), (egfr_mfs[2], egfr_mfs[3]), initial_values[2], time_indexes[0])
+		y[2] = calculate_egfr((egfr_mfs[0], egfr_mfs[1]), (egfr_mfs[2], egfr_mfs[3]), initial_values[2], time_indexes[0])
 		
-	if(present_values[1] == 0):
-		y[2] = 0
-		y[4] = 0
-	else:
-		y[2] = calculate_raf((raf_mfs[0], raf_mfs[1]), (raf_mfs[2], raf_mfs[3]), initial_values[3], egfr_index)
-		y[4] = calculate_pi3k((pi3k_mfs[0][0], pi3k_mfs[0][1]), (pi3k_mfs[1][0], pi3k_mfs[1][1]), (pi3k_mfs[2][0], pi3k_mfs[2][1]),  initial_values[5], egfr_index, erk_index)
-
 	if(present_values[2] == 0):
 		y[3] = 0
-	else:
-		y[3] = calculate_erk((erk_mfs[0], erk_mfs[1]), (erk_mfs[2], erk_mfs[3]), initial_values[4], raf_index)
-
-	if(present_values[4] == 0):
 		y[5] = 0
 	else:
-		y[5] = calaculate_akt((akt_mfs[0][0], akt_mfs[0][1]), (akt_mfs[1][0], akt_mfs[1][1]), initial_values[6], pi3k_index)
+		y[3] = calculate_raf((raf_mfs[0][0], raf_mfs[0][1]), (raf_mfs[1][0], raf_mfs[1][1]), (raf_mfs[2][0], raf_mfs[2][1]), initial_values[3], egfr_index, akt_index)
+		y[5] = calculate_pi3k((pi3k_mfs[0][0], pi3k_mfs[0][1]), (pi3k_mfs[1][0], pi3k_mfs[1][1]), (pi3k_mfs[2][0], pi3k_mfs[2][1]), initial_values[5], egfr_index, erk_index)
+
+	if(present_values[3] == 0):
+		y[4] = 0
+	else:
+		y[4] = calculate_erk((erk_mfs[0], erk_mfs[1]), (erk_mfs[2], erk_mfs[3]), initial_values[4], raf_index)
+
+	if(present_values[5] == 0):
+		y[6] = 0
+	else:
+		y[6] = calaculate_akt((akt_mfs[0][0], akt_mfs[0][1]), (akt_mfs[1][0], akt_mfs[1][1]), initial_values[6], pi3k_index)
 
 	not_updated = []
 	for i in xrange(len(y)):
@@ -180,7 +183,7 @@ def rules(present_values, initial_values, time_indexes, time_length):
 	return y , time_indexes
 
 def main():
-	y = np.array([0.9, 0, 0, 0, 0, 0])
+	y = np.array([0.9, 0, 0, 0, 0, 0, 0])
 	size = 100
 	time_length = [10, 1.0, 1.0]
 	time = np.linspace(0, time_length[0], size*time_length[0] + 1)
@@ -231,33 +234,33 @@ def main():
 			temp, time_indexes = rules(y[i - 1], initial_vals, time_indexes, time_length)
 			y = np.vstack((y, temp))
 					
-			new_raf_out[i] = y[i, 2]
-			new_erk_out[i] = y[i, 3]
-			new_pi3k_out[i] = y[i, 4]
-			new_akt_out[i] = y[i, 5]
+			new_raf_out[i] = y[i, 3]
+			new_erk_out[i] = y[i, 4]
+			new_pi3k_out[i] = y[i, 5]
+			new_akt_out[i] = y[i, 6]
 
 			if( i > time_raf_delay ):
-				y[i, 2] = new_raf_out[i - time_raf_delay]
-			else:
-				y[i, 2] = 0
-
-			if(i > time_pi3k_delay):
-				y[i ,4] = new_pi3k_out[i - time_pi3k_delay]
-			else:
-				y[i, 4] = 0
-
-			if( i > time_erk_delay):
-				y[i, 3] = new_erk_out[i - time_erk_delay]
+				y[i, 3] = new_raf_out[i - time_raf_delay]
 			else:
 				y[i, 3] = 0
 
-			if( i > time_akt_delay):
-				y[i, 5] = new_akt_out[i - time_akt_delay]
+			if(i > time_pi3k_delay):
+				y[i ,5] = new_pi3k_out[i - time_pi3k_delay]
 			else:
 				y[i, 5] = 0
 
+			if( i > time_erk_delay):
+				y[i, 4] = new_erk_out[i - time_erk_delay]
+			else:
+				y[i, 4] = 0
+
+			if( i > time_akt_delay):
+				y[i, 6] = new_akt_out[i - time_akt_delay]
+			else:
+				y[i, 6] = 0
+
 			#print y[i]
-		plt.plot(time, y[:,1], time, y[:,5], time, y[:,4])
+		plt.plot(time, y[:,2], time, y[:,5], time, y[:,4])
 		plt.xlabel('Time')
 		plt.ylabel('egfr')
 		plt.axis([-0.1,time_length[0] + 0.01, -0.01, 1.01])
